@@ -34,7 +34,7 @@
  :aliases
  {:nextjournal/clerk
   {:exec-fn nextjournal.clerk/build-static-app!
-   :exec-args {:paths ["notebooks/data_science.clj"]}}}}
+   :exec-args {:index "notebooks/data_science.clj"}}}}
  ;; {:nextjournal/clerk
  ;;  {:exec-fn nextjournal.clerk/build-static-app!
  ;;   :exec-args {:index "notebooks/data_science.clj"}
