@@ -1,5 +1,7 @@
 name: Publish to Pages
 on: push
+permissions:
+  contents: write
 jobs:
   static-build:
     runs-on: ubuntu-latest
