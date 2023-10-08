@@ -4,20 +4,20 @@ jobs:
   static-build:
   runs-on: ubuntu-latest
   steps:
-    - name: 🛎️ Checkout
+    - name: Checkout
       uses: actions/checkout@v2
 
-    - name: 🔧 Install java
+    - name: Install java
       uses: actions/setup-java@v1
       with:
         java-version: '11.0.7'
 
-    - name: 🔧 Install clojure
+    - name: Install clojure
       uses: DeLaGuardo/setup-clojure@master
       with:
         cli: '1.10.3.943'
 
-    - name: 🗝 maven cache
+    - name: maven cache
       uses: actions/cache@v2
       with:
         path: |
@@ -27,16 +27,16 @@ jobs:
         restore-keys: |
           ${{ runner.os }}-maven-
 
-    - name: 🗝 Clerk Cache
-        uses: actions/cache@v2
-        with:
+    - name: Clerk Cache
+      uses: actions/cache@v2
+      with:
           path: .cache
           key: ${{ runner.os }}-clerk
 
-    - name: 🏗 Clerk Build
+    - name: Clerk Build
       run: clojure -X:nextjournal/clerk
 
-    - name: 🚀 Deploy
+    - name: Deploy
       uses: JamesIves/github-pages-deploy-action@4.1.6
       with:
         branch: gh-pages
