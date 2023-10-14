@@ -12,80 +12,104 @@
             [nextjournal.clerk :as clerk]
             [clojure.data.json :as json]
             [clojure.pprint :as pp]
-            [clojure.edn :as edn]))
+            [clojure.edn :as edn]
+            [cheshire.core :refer [generate-string parse-string]]))
 
-;; # Viz A2
+;; # PT Trip frequency by suburb and time of day
 
-
-^{:nextjournal.clerk/visibility {:code :hide :result :hide}}
-(def suburb-data (slurp "inputs/cm_suburb_boundaries.json"))
 
 ^{:nextjournal.clerk/visibility {:code :hide :result :hide}}
-(def line-data (slurp "inputs/line_freq_clipped_4to7.json"))
+(def all-data (-> "inputs/boundaries_stops_and_lines.json"
+                  slurp
+                  json/read-str))
 
 ^{:nextjournal.clerk/visibility {:code :hide :result :hide}}
-(def edn-input {:$schema "https://vega.github.io/schema/vega-lite/v5.json",
-           :width 700,
-           :height 500,
-           :view {:stroke "transparent"},
-           :title "Melbourne/Clayton PT lines"
-           :layer
-           [{:data {:values "inputs/cm_suburb_boundaries.json"
-                    :format {:type "json", :property "features"}},
-             :mark {:type "geoshape", :stroke "white", :strokeWidth 2},
-             :encoding {:color {:value "#eee"}}}
-            {:data {:values "inputs/line_freq_clipped_4to7.json"
-                    :format {:type "json" :property "features"}}
-             :mark {:type "geoshape" :filled false :strokeWidth 0.8}
-             :encoding {:color {:value "#111"}}}
-            ]})
+(defn get-feature-vic-loca-2 [feature]
+  (get-in feature ["properties" "name"]))
 
-;; Here are all the transit lines in Melbourne's CBD and South-Eastern Suburbs (because the Victorian data set was too big)
-;; I want to eventually visualise the frequencies of all the lines in the area, by time-slot and by direction
+^{:nextjournal.clerk/visibility {:code :hide :result :hide}}
+(def vic-loca-vec (as-> (all-data "features") _
+                    (filter #(or (= (get-in % ["geometry" "type"]) "Polygon")
+                                 (= (get-in % ["geometry" "type"]) "MultiPolygon")) _)
+                    (map get-feature-vic-loca-2 _)
+                    (set _)
+                    (vec _)
+                    (sort _)))
+
+
+;; Select a **suburb** from the dropdown menu and see the distribution of PT trips in the area by the time of day.
 (merge
  {:nextjournal/width :wide}
  (clerk/vl {:$schema "https://vega.github.io/schema/vega-lite/v5.json",
-            :width 700,
-            :height 500,
             :view {:stroke "transparent"},
-            :title "Melbourne/SE Suburbs PT lines"
-            :layer
-            [{:data {:values suburb-data
-                     :format {:type "json", :property "features"}},
-              :mark {:type "geoshape", :stroke "white", :strokeWidth 2},
-              :encoding {:color {:value "#eee"}
-                         :tooltip {:field "properties.vic_loca_2"
-                                   :type "nominal"
-                                   :title "Name"}}}
-             {:data {:values line-data
-                     :format {:type "json" :property "features"}}
-              :mark {:type "geoshape" :filled false :strokeWidth 0.8 :opacity 1}
-              ;; :encoding {:color {:value "#111"}}}
-              :encoding {:color {:bin {:binned true :maxstep 3}
-                                 :field "properties.ntrips"
-                                 :type "quantitative"
-                                 :scale {:scheme "purples"
-                                         :count 4}}
-                         :tooltip [{:field "properties.ntrips"
-                                    :type "quantitative"
-                                    :title "Number of trips"}
-                                   {:field "properties.route_name"
-                                    :type "nominal"
-                                    :title "Route ID"}]}
-             }
-             ]}
-           ))
+            :padding 20
+            :title "Melbourne: SE Suburbs"
+            :data {:values all-data
+                   :format {:type "json" :property "features"}}
+            :params [{:name "selected_suburb"
+                      :value "CLAYTON"
+                      :title "Selected Suburb: "
+                      :bind {:input "select" :options vic-loca-vec}}]
+            :vconcat [{:hconcat [{
+                                    :transform [{:filter "datum.properties.window == '0:00-6:00'"}]
+                                    :mark {:type "geoshape", :stroke "white", :strokeWidth 2},
+                                    :projection {:type "mercator"}
+                                    :width 500
+                                    :height 500
+                                    :encoding {:color
+                                               {:condition
+                                                {:test "datum.properties.name == selected_suburb",
+                                                 :value "#CBC3E3"},
+                                                :value "#ddd"},
+                                               :tooltip
+                                               {:field "properties.name", :type "nominal", :title "Name"}}
+                                    }
+                                   {:transform
+                                    [{:filter {:or ["datum.properties.suburb_name == selected_suburb"
+                                                    "datum.properties.name == selected_suburb"]}}]
+                                    :projection {:type "mercator"}
+                                    :title {:expr "selected_suburb"}
+                                    :layer [
+                                            {:mark {:type "geoshape" :stroke "white" :strokeWidth 2}
+                                             :transform [{:filter {:or [{:field "geometry.type" :equal "Polygon"}
+                                                                        {:field "geometry.type" :equal "MultiPolygon"}]}}]
+                                             :encoding {:color {:value "#CBC3E3"}}}
 
-;; **Planned features**:
-;; + Select timeslot in day (5-7am, 7-9am etc.)
-;; + Show suburb names on map
-;; + Select PT stop from map
-;; + When PT stop is selected:
-;;   + show zoomed map view (separate)
-;;   + Show histogram of 'number of stops' per time-bin through the day
-;;
-;; **Planned fixes**:
-;; + fix `nan` values in a lot of route names (mostly bus routes)
-;; + fix issue such as there only being 2 trips between 4-7pm for the Pakenham-city train route
-;; + work out why there are overlapping routes with the same name in the same timeslot
-;; + add mode of transport to tooltip
+                                            {
+                                             :mark {:type "geoshape" :color "purple" :fill "purple" :opacity 1 :stroke "purple"}
+                                             :pointRadius {:value 122}
+                                             :transform [{:filter {:field "geometry.type" :equal "Point"}}]
+                                             :encoding {:size {:value 12}
+                                                        :color {:value "blue"}}}
+
+                                            {:mark {:type "geoshape" :filled false :strokeWidth 1 :opacity 0.8}
+                                             :transform
+                                             [{:filter {:or [{:field "geometry.type" :equal "LineString"}
+                                                             {:field "geometry.type" :equal "Line"}
+                                                             {:field "geometry.type" :equal "MultiLineString"}]}}]
+                                             :encoding
+                                             {:color {:value "red"}}}]}]}
+
+                      {
+                       :width 700
+                       :transform
+                       [{:filter {:and [{:or ["datum.properties.suburb_name == selected_suburb"
+                                              "datum.properties.name == selected_suburb"]}
+                                        {:field "geometry.type" :equal "Point"}]}}
+                        {:window [{:op "sum" :field "properties.ntrips" :as "sum_ntrips"}]
+                         ;; :sort [{:field "properties.window" :order "ascending"}]
+                         }]
+                       :mark "bar"
+                       :encoding {:x {:field "properties.win_map" :type "ordinal" :axis {:field "properties.window"} :title "Time"}
+                                  :y {:field "sum_ntrips" :type "quantitative" :title "Number of trips"}
+                                  :color {:value "purple"}}
+                       }
+                      ]}
+           ))
+;; The key for the x-axis is:
+;; + "0:00-6:00": 1
+;; + "6:00-10:00": 2
+;; + "10:00-12:00": 3
+;; + "12:00-16:00": 4
+;; + "16:00-19:00": 5
+;; + "19:00-24:00": 6
