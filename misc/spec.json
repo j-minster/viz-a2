@@ -4,7 +4,7 @@
     "stroke": "transparent"
   },
   "padding": 20,
-  "title": "Melbourne: SE Suburbs",
+  "title": "Melbourne CBD & SE Suburbs",
   "data": {
     "values": "all-data",
     "format": {
@@ -181,8 +181,20 @@
                 ]
               },
               {
-                "field": "geometry.type",
-                "equal": "Point"
+                "or": [
+                  {
+                    "field": "geometry.type",
+                    "equal": "LineString"
+                  },
+                  {
+                    "field": "geometry.type",
+                    "equal": "Line"
+                  },
+                  {
+                    "field": "geometry.type",
+                    "equal": "MultiLineString"
+                  }
+                ]
               }
             ]
           }
@@ -203,7 +215,8 @@
           "field": "properties.win_map",
           "type": "ordinal",
           "axis": {
-            "field": "properties.window"
+            "labelExpr": "{1: 'Midnight–6am', 2: '6am–10am', 3: '10am–12pm', 4: '12pm–4pm', 5: '4pm–7pm', 6: '6pm–Midnight'}[datum.value]",
+            "labelAngle": -45
           },
           "title": "Time"
         },

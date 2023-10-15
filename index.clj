@@ -43,7 +43,7 @@
  (clerk/vl {:$schema "https://vega.github.io/schema/vega-lite/v5.json",
             :view {:stroke "transparent"},
             :padding 20
-            :title "Melbourne: SE Suburbs"
+            :title "Melbourne CBD & SE Suburbs"
             :data {:values all-data
                    :format {:type "json" :property "features"}}
             :params [{:name "selected_suburb"
@@ -95,21 +95,16 @@
                        :transform
                        [{:filter {:and [{:or ["datum.properties.suburb_name == selected_suburb"
                                               "datum.properties.name == selected_suburb"]}
-                                        {:field "geometry.type" :equal "Point"}]}}
+                                        {:or [{:field "geometry.type" :equal "LineString"}
+                                                             {:field "geometry.type" :equal "Line"}
+                                                             {:field "geometry.type" :equal "MultiLineString"}]}]}}
                         {:window [{:op "sum" :field "properties.ntrips" :as "sum_ntrips"}]
                          ;; :sort [{:field "properties.window" :order "ascending"}]
                          }]
                        :mark "bar"
-                       :encoding {:x {:field "properties.win_map" :type "ordinal" :axis {:field "properties.window"} :title "Time"}
+                       :encoding {:x {:field "properties.win_map" :type "ordinal" :axis {:labelExpr "{1: 'Midnight–6am', 2: '6am–10am', 3: '10am–12pm', 4: '12pm–4pm', 5: '4pm–7pm', 6: '6pm–Midnight'}[datum.value]" :labelAngle -45} :title "Time"}
                                   :y {:field "sum_ntrips" :type "quantitative" :title "Number of trips"}
                                   :color {:value "purple"}}
                        }
                       ]}
            ))
-;; The key for the x-axis is:
-;; + "0:00-6:00": 1
-;; + "6:00-10:00": 2
-;; + "10:00-12:00": 3
-;; + "12:00-16:00": 4
-;; + "16:00-19:00": 5
-;; + "19:00-24:00": 6
