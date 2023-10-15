@@ -38,6 +38,7 @@
 
 
 ;; Select a **suburb** from the dropdown menu and see the distribution of PT trips in the area by the time of day.
+;; The day chosen from the underlying GTFS data is Friday the 13th of October, 2023, the busiest day in the data.
 (merge
  {:nextjournal/width :wide}
  (clerk/vl {:$schema "https://vega.github.io/schema/vega-lite/v5.json",
