@@ -51,20 +51,27 @@
                       :value "CLAYTON"
                       :title "Selected Suburb: "
                       :bind {:input "select" :options vic-loca-vec}}]
-            :vconcat [{:hconcat [{
-                                    :transform [{:filter "datum.properties.window == '0:00-6:00'"}]
-                                    :mark {:type "geoshape", :stroke "white", :strokeWidth 2},
-                                    :projection {:type "mercator"}
-                                    :width 500
-                                    :height 500
-                                    :encoding {:color
-                                               {:condition
-                                                {:test "datum.properties.name == selected_suburb",
-                                                 :value "#CBC3E3"},
-                                                :value "#ddd"},
-                                               :tooltip
-                                               {:field "properties.name", :type "nominal", :title "Name"}}
-                                    }
+            :vconcat [{:hconcat [{:layer [{
+                                           :transform [{:filter "datum.properties.window == '0:00-6:00'"}]
+                                           :mark {:type "geoshape", :stroke "white", :strokeWidth 2},
+                                           :projection {:type "mercator"}
+                                           :width 500
+                                           :height 500
+                                           :encoding {:color
+                                                      {:condition
+                                                       {:test "datum.properties.name == selected_suburb",
+                                                        :value "#CBC3E3"},
+                                                       :value "#ddd"},
+                                                      :tooltip
+                                                      {:field "properties.name", :type "nominal", :title "Name"}}
+                                           }
+                                          {:mark {:type "geoshape" :filled false :strokeWidth 1 :opacity 0.08}
+                                             :transform
+                                             [{:filter {:or [{:field "geometry.type" :equal "LineString"}
+                                                             {:field "geometry.type" :equal "Line"}
+                                                             {:field "geometry.type" :equal "MultiLineString"}]}}]
+                                             :encoding
+                                             {:color {:value "purple"}}}]}
                                    {:transform
                                     [{:filter {:or ["datum.properties.suburb_name == selected_suburb"
                                                     "datum.properties.name == selected_suburb"]}}]
@@ -77,11 +84,13 @@
                                              :encoding {:color {:value "#CBC3E3"}}}
 
                                             {
-                                             :mark {:type "geoshape" :color "purple" :fill "purple" :opacity 1 :stroke "purple"}
+                                             :mark {:type "geoshape" :color "#b677ba" :fill "#b677ba" :opacity 1 :stroke "#b677ba"}
                                              :pointRadius {:value 122}
                                              :transform [{:filter {:field "geometry.type" :equal "Point"}}]
                                              :encoding {:size {:value 12}
-                                                        :color {:value "blue"}}}
+                                                        :color {:value "blue"}
+                                                        :tooltip
+                                                        {:field "properties.name", :type "nominal", :title "Name"}}}
 
                                             {:mark {:type "geoshape" :filled false :strokeWidth 1 :opacity 0.8}
                                              :transform
@@ -89,7 +98,9 @@
                                                              {:field "geometry.type" :equal "Line"}
                                                              {:field "geometry.type" :equal "MultiLineString"}]}}]
                                              :encoding
-                                             {:color {:value "red"}}}]}]}
+                                             {:color {:value "purple"}
+                                              :tooltip
+                                              {:field "properties.name", :type "nominal", :title "Name"}}}]}]}
 
                       {
                        :width 700
